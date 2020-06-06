@@ -45,7 +45,10 @@ class ResumeParser(object):
         self.__nlp = nlp(self.__text)
         self.__custom_nlp = custom_nlp(self.__text_raw)
         self.__noun_chunks = list(self.__nlp.noun_chunks)
+        self.__nlp_sents = [sent.string.strip() for sent in self.__nlp.sents]
         self.__get_basic_details()
+
+        # print(dict([(str(x), x.label_) for x in self.__nlp.ents]), '\n')
 
     def get_extracted_data(self):
         return self.__details
@@ -54,7 +57,8 @@ class ResumeParser(object):
         cust_ent = utils.extract_entities_wih_custom_model(
                             self.__custom_nlp
                         )
-        name = utils.extract_name(self.__nlp, matcher=self.__matcher)
+        name = utils.extract_name(self.__nlp, self.__nlp_sents,
+                    matcher=self.__matcher)
         email = utils.extract_email(self.__text)
         mobile = utils.extract_mobile_number(self.__text, self.__custom_regex)
         skills = utils.extract_skills(
@@ -62,14 +66,14 @@ class ResumeParser(object):
                     self.__noun_chunks,
                     self.__skills_file
                 )
-        edu = utils.extract_education(
-                    [sent.string.strip() for sent in self.__nlp.sents]
-              )
+        edu = utils.extract_education(self.__nlp_sents)
+
         entities = utils.extract_entity_sections_grad(self.__text_raw)
 
         college_name = utils.extract_college_name(
                     [sent.string.strip() for sent in self.__nlp.sents]
             )
+        designation = utils.extract_designation(self.__nlp, self.__noun_chunks)
 
         # extract name
         try:
@@ -101,8 +105,9 @@ class ResumeParser(object):
             pass
 
         # extract designation
+        self.__details['designation'] = designation
         try:
-            self.__details['designation'] = cust_ent['Designation']
+            self.__details['designation'].extend(cust_ent['Designation'])
         except KeyError:
             pass
 
@@ -124,7 +129,7 @@ class ResumeParser(object):
                 self.__details['total_experience'] = 0
         except KeyError:
             self.__details['total_experience'] = 0
-            
+
         self.__details['no_of_pages'] = utils.get_number_of_pages(
                                             self.__resume
                                         )

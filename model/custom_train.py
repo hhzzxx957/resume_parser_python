@@ -36,6 +36,7 @@ import spacy
 import json
 import logging
 import os
+import pickle
 
 # new entity label
 LABEL = "COL_NAME"
@@ -126,8 +127,9 @@ def convert_dataturks_to_spacy(dataturks_JSON_FilePath):
         return None
 
 
-TRAIN_DATA = trim_entity_spans(convert_dataturks_to_spacy("traindata.json"))
-
+# TRAIN_DATA = trim_entity_spans(convert_dataturks_to_spacy("traindata.json"))
+with open('train_data.pkl', 'rb') as f:
+    TRAIN_DATA = pickle.load(f, encoding='latin1')
 
 @plac.annotations(
     model=("Model name. Defaults to blank 'en' model.", "option", "m", str),
@@ -136,10 +138,10 @@ TRAIN_DATA = trim_entity_spans(convert_dataturks_to_spacy("traindata.json"))
     n_iter=("Number of training iterations", "option", "n", int),
 )
 def main(
-    model='.\\trained_models\\nlp_model', 
-    new_model_name="newtrain", 
+    model= '.\\trained_models\\omkar_model',
+    new_model_name="newtrain",
     output_dir='.\\trained_models\\new_model',
-    n_iter=15
+    n_iter=8
 ):
     """Set up the pipeline and entity recognizer, and train the new entity."""
     random.seed(0)
@@ -148,6 +150,7 @@ def main(
         print("Loaded model '%s'" % model)
     else:
         nlp = spacy.blank("en")  # create blank Language class
+        # nlp = spacy.load("en_core_web_sm")  # create blank Language class
         print("Created blank 'en' model")
     # Add entity recognizer to model if it's not in the pipeline
     # nlp.create_pipe works for built-ins that are registered with spaCy
@@ -165,14 +168,14 @@ def main(
     for _, annotations in TRAIN_DATA:
         for ent in annotations.get('entities'):
             ner.add_label(ent[2])
-        
+
 
     # if model is None or reset_weights:
     #     optimizer = nlp.begin_training()
     # else:
     #     optimizer = nlp.resume_training()
     move_names = list(ner.move_names)
-    
+
     # get names of other pipes to disable them during training
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
     with nlp.disable_pipes(*other_pipes):  # only train NER

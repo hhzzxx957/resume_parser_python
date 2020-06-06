@@ -2,6 +2,7 @@ from nltk.corpus import stopwords
 
 # Omkar Pathak
 NAME_PATTERN = [{'POS': 'PROPN'}, {'POS': 'PROPN'}]
+NAME_PATTERN2 = [{'POS': 'PROPN'}, {'POS': 'PROPN'}, {'POS':'PROPN'}]
 
 # Education (Upper Case Mandatory)
 EDUCATION = [
@@ -54,3 +55,6 @@ RESUME_SECTIONS_GRAD = [
                     'summary',
                     'leadership'
                 ]
+
+RESUME_SECTIONS_EXPERIENCE = []
+RESUME_SECTIONS_EDUCATION = []

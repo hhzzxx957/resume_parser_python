@@ -317,7 +317,7 @@ def extract_email(text):
             return None
 
 
-def extract_name(nlp_text, matcher):
+def extract_name(nlp_text, nlp_text_sents, matcher):
     '''
     Helper function to extract name from spacy nlp text
 
@@ -325,18 +325,33 @@ def extract_name(nlp_text, matcher):
     :param matcher: object of `spacy.matcher.Matcher`
     :return: string of full name
     '''
-#     pattern = [cs.NAME_PATTERN]
 
-#     matcher.add('NAME', None, *pattern)
+    pattern = [cs.NAME_PATTERN, cs.NAME_PATTERN2]
 
-#     matches = matcher(nlp_text)
+    matcher.add('NAME', None, *pattern)
 
-#     for _, start, end in matches:
-#         span = nlp_text[start:end]
-#         if 'name' not in span.text.lower():
-#             return span.text
+    matches = matcher(nlp_text)
 
-    return [ee for ee in nlp_text.ents if ee.label_ == 'PERSON'][0]
+    # print([(x.orth_,x.pos_) for x in [y for y in nlp_text
+    #                                   if not y.is_stop and y.pos_ != 'PUNCT']])
+    for _, start, end in matches:
+        span = nlp_text[start:end]
+        if 'name' not in span.text.lower():
+            first_sent = span.text
+            break
+
+    fullname = []
+
+    name_ent = [ee for ee in nlp_text.ents if ee.label_ == 'PERSON']
+
+    # if name_ent in first matched pattern not in name_ent, add name_ent.
+    if name_ent:
+        fullname.append(name_ent[0])
+        if str(name_ent[0]) not in str(first_sent):
+            fullname.append(first_sent)
+    else:
+        fullname.append(first_sent)
+    return fullname
 
 def extract_mobile_number(text, custom_regex=None):
     '''
@@ -391,6 +406,27 @@ def cleanup(token, lower=True):
         token = token.lower()
     return token.strip()
 
+def extract_designation(nlp_text, noun_chunks):
+    title_df = pd.read_csv(
+        os.path.join(os.path.dirname(__file__), 'jobtitles.csv')
+    )
+
+    titles = list(title_df.Title.values)
+    titles = [title.lower() for title in titles]
+    tokens = [token.text for token in nlp_text if not token.is_stop]
+
+    titleset = []
+    # check for one-grams
+    for token in tokens:
+        if token.lower() in titles:
+            titleset.append(token)
+
+    # check for bi-grams and tri-grams
+    for token in noun_chunks:
+        token = token.text.lower().strip()
+        if token in titles:
+            titleset.append(token)
+    return [i.capitalize() for i in set([i.lower() for i in titleset])]
 
 def extract_education(nlp_text_sents):
     '''
@@ -419,12 +455,12 @@ def extract_education(nlp_text_sents):
 
     education =[]
     for key in edu.keys():
-        major = [major for major in majors if major in edu[key].upper()][0]
+        major = [major for major in majors if major in edu[key].upper()]
         year = re.search(re.compile(cs.YEAR), edu[key])
 
         edu_info = [key]
         if major:
-            edu_info.append(major)
+            edu_info.append(major[0])
         if year:
             edu_info.append(''.join(year.group(0)))
         education.append(' '.join(edu_info))
@@ -439,7 +475,7 @@ def extract_college_name(nlp_text_sents):
     collegeset = []
     for sent in nlp_text_sents:
         collegeset += [college for college in colleges if college.upper() in sent.upper()]
-    return collegeset
+    return [i.capitalize() for i in set([i.lower() for i in collegeset])]
 
 def extract_experience(resume_text):
     '''
@@ -461,11 +497,11 @@ def extract_experience(resume_text):
             not in stop_words
         ]
     sent = nltk.pos_tag(filtered_sentence)
-
+    print('sent',sent)
     # parse regex
     cp = nltk.RegexpParser('P: {<NNP>+}')
     cs = cp.parse(sent)
-
+    print('cs',cs)
     # for i in cs.subtrees(filter=lambda x: x.label() == 'P'):
     #     print(i)
 
@@ -478,7 +514,7 @@ def extract_experience(resume_text):
             i[0] for i in vp.leaves()
             if len(vp.leaves()) >= 2])
         )
-
+    print('test',test)
     # Search the word 'experience' in the chunk and
     # then print out the text after it
     x = [
