@@ -2,13 +2,13 @@ from nltk.corpus import stopwords
 
 # Omkar Pathak
 NAME_PATTERN = [{'POS': 'PROPN'}, {'POS': 'PROPN'}]
-NAME_PATTERN2 = [{'POS': 'PROPN'}, {'POS': 'PROPN'}, {'POS':'PROPN'}]
+# NAME_PATTERN2 = [{'POS': 'PROPN'}, {'POS': 'PROPN'}, {'POS':'PROPN'}]
 
 # Education (Upper Case Mandatory)
 EDUCATION = [
-            'BE', 'B.E.', 'B.E', 'BS', 'B.S','B.S.', 'ME', 'M.E',
-            'M.E.', 'MS', 'M.S', 'BTECH', 'MTECH',
-            'PHD', 'PH.D', 'PH.D.','MD','M.D.','M.D',
+            'BE', 'B.E.', 'B.E', 'BS', 'B.S','B.S.','BACHELOR',
+            'ME', 'M.E', 'MS', 'M.S', 'M.S.', 'BTECH', 'MTECH', 'MASTER',
+            'PHD', 'PH.D', 'PH.D.','MD','M.D.','M.D', 'DOCTOR',
             'SSC', 'HSC', 'CBSE', 'ICSE', 'X', 'XII'
         ]
 
@@ -42,19 +42,22 @@ RESUME_SECTIONS_PROFESSIONAL = [
 
 RESUME_SECTIONS_GRAD = [
                     'accomplishments',
-                    'experience',
                     'education',
+                    'employment',
+                    'experience',
                     'interests',
                     'projects',
-                    'professional experience',
+                    'profile',
                     'publications',
                     'skills',
                     'certifications',
                     'objective',
-                    'career objective',
                     'summary',
-                    'leadership'
+                    'introduction'
                 ]
-
-RESUME_SECTIONS_EXPERIENCE = []
-RESUME_SECTIONS_EDUCATION = []
+SECTION_NAMELIST = {
+'profile': ['beginning', 'introduction', 'profile', 'summary'],
+'education': ['education', 'publications', 'certifications'],
+'skills': ['skills', 'projects', 'experience'],
+'experience': ['experience', 'projects', 'employment']
+}

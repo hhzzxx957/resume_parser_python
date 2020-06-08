@@ -33,6 +33,7 @@ import plac
 import random
 from pathlib import Path
 import spacy
+from spacy.util import minibatch, compounding
 import json
 import logging
 import os
@@ -127,9 +128,9 @@ def convert_dataturks_to_spacy(dataturks_JSON_FilePath):
         return None
 
 
-# TRAIN_DATA = trim_entity_spans(convert_dataturks_to_spacy("traindata.json"))
-with open('train_data.pkl', 'rb') as f:
-    TRAIN_DATA = pickle.load(f, encoding='latin1')
+TRAIN_DATA = trim_entity_spans(convert_dataturks_to_spacy("traindata.json"))
+# with open('train_data.pkl', 'rb') as f:
+#     TRAIN_DATA = pickle.load(f, encoding='latin1')
 
 @plac.annotations(
     model=("Model name. Defaults to blank 'en' model.", "option", "m", str),
@@ -138,10 +139,11 @@ with open('train_data.pkl', 'rb') as f:
     n_iter=("Number of training iterations", "option", "n", int),
 )
 def main(
-    model= '.\\trained_models\\omkar_model',
+    model= None,
+    # '.\\trained_models\\omkar_model',
     new_model_name="newtrain",
     output_dir='.\\trained_models\\new_model',
-    n_iter=8
+    n_iter=10
 ):
     """Set up the pipeline and entity recognizer, and train the new entity."""
     random.seed(0)
@@ -150,7 +152,7 @@ def main(
         print("Loaded model '%s'" % model)
     else:
         nlp = spacy.blank("en")  # create blank Language class
-        # nlp = spacy.load("en_core_web_sm")  # create blank Language class
+        # nlp = spacy.load("en_core_web_sm")  # create Language class
         print("Created blank 'en' model")
     # Add entity recognizer to model if it's not in the pipeline
     # nlp.create_pipe works for built-ins that are registered with spaCy
@@ -174,25 +176,23 @@ def main(
     #     optimizer = nlp.begin_training()
     # else:
     #     optimizer = nlp.resume_training()
-    move_names = list(ner.move_names)
+    # move_names = list(ner.move_names)
 
     # get names of other pipes to disable them during training
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
     with nlp.disable_pipes(*other_pipes):  # only train NER
         optimizer = nlp.begin_training()
         # batch up the examples using spaCy's minibatch
+        sizes = compounding(1.0, 4.0, 1.001)
         for itn in range(n_iter):
             print("Starting iteration " + str(itn))
             random.shuffle(TRAIN_DATA)
             losses = {}
-            for text, annotations in TRAIN_DATA:
+            batches = minibatch(TRAIN_DATA, size=sizes)
+            for batch in batches:
+                texts, annotations = zip(*batch)
                 try:
-                    nlp.update(
-                        [text],  # batch of texts
-                        [annotations],  # batch of annotations
-                        drop=0.2,  # dropout - make it harder to memorise data
-                        sgd=optimizer,  # callable to update weights
-                        losses=losses)
+                    nlp.update(texts, annotations, sgd=optimizer, drop=0.4, losses=losses)
                 except:
                     pass
             print("Losses", losses)
@@ -217,13 +217,12 @@ def main(
         print("Loading from", output_dir)
         nlp2 = spacy.load(output_dir)
         # Check the classes have loaded back consistently
-        assert nlp2.get_pipe("ner").move_names == move_names
+        # assert nlp2.get_pipe("ner").move_names == move_names
         doc2 = nlp2(test_text)
         for ent in doc2.ents:
             print(ent.label_, ent.text)
 
 
 if __name__ == "__main__":
-    print(os.path.dirname(os.path.abspath(__file__)))
     print(os.path.dirname(os.path.abspath(__file__)) + '\\trained_models\\omkar_model')
     plac.call(main)

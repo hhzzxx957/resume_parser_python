@@ -172,7 +172,7 @@ def extract_text(file_path, extension):
     return text
 
 
-def extract_entity_sections_grad(text):
+def extract_entity_sections(text_raw):
     '''
     Helper function to extract all the raw text from sections of
     resume specifically for graduates and undergraduates
@@ -180,9 +180,9 @@ def extract_entity_sections_grad(text):
     :param text: Raw text of resume
     :return: dictionary of entities
     '''
-    text_split = [i.strip() for i in text.split('\n')]
+    text_split = [i.strip() for i in text_raw.split('\n')]
     # sections_in_resume = [i for i in text_split if i.lower() in sections]
-    entities = {}
+    sections = {'beginning': []}
     key = False
     for phrase in text_split:
         if len(phrase) == 1:
@@ -194,15 +194,28 @@ def extract_entity_sections_grad(text):
         except IndexError:
             pass
 
-        if p_key in cs.RESUME_SECTIONS_GRAD:
-            entities[p_key] = []
+        if not p_key and not key and phrase.strip():
+            sections['beginning'].append(phrase)
+        elif p_key in cs.RESUME_SECTIONS_GRAD:
+            sections[p_key] = []
             key = p_key
         elif key and phrase.strip():
-            entities[key].append(phrase)
-    return entities
+            sections[key].append(phrase)
+    return sections
 
+def extract_section_text(section_title, sections):
+    '''
+    helper function to extract text by from each section
+    including profile, experience, skills, education
+    '''
+    section_list = cs.SECTION_NAMELIST[section_title]
+    text_section = []
+    for section_name in section_list:
+        if section_name in sections.keys():
+            text_section += sections[section_name]
+    return '\n'.join(text_section)
 
-def extract_entities_wih_custom_model(custom_nlp_text):
+def extract_entities_form_model(custom_nlp_text):
     '''
     Helper function to extract different entities with custom
     trained model using SpaCy's NER
@@ -220,29 +233,41 @@ def extract_entities_wih_custom_model(custom_nlp_text):
         entities[key] = list(set(entities[key]))
     return entities
 
-
-def get_total_experience(experience_list):
+def get_total_experience(experience_text):
     '''
     Wrapper function to extract total months of experience from a resume
 
-    :param experience_list: list of experience text extracted
+    :param experience_phrases: list of experience phrase extracted
     :return: total months of experience
     '''
+    experience_phrases = experience_text.split('\n')
+    experience_dic = {}
     exp_ = []
-    for line in experience_list:
+    for ind, line in enumerate(experience_phrases):
         experience = re.search(
-            r'(?P<fmonth>\w+.\d+)\s*(\D|to)\s*(?P<smonth>\w+.\d+|present)',
+            r'(?P<fmonth>\w+\.*.\d+)\s*(\D|to)\s*(?P<smonth>\w+\.*.\d+|present|current)',
             line,
             re.I
         )
         if experience:
-            exp_.append(experience.groups())
+            date = ' '.join(experience.groups(0))
+            exp_.append(experience.groups(0))
+            # add exprience to experience_list
+            experience_dic[date] = []
+            if line != date:
+                experience_dic[date].append(line.replace(date, ''))
+            try:
+                experience_dic[date].append(experience_phrases[ind-1])
+            except: pass
+            try:
+                experience_dic[date].append(experience_phrases[ind+1])
+            except: pass
+
     total_exp = sum(
         [get_number_of_months_from_dates(i[0], i[2]) for i in exp_]
     )
     total_experience_in_months = total_exp
-    return total_experience_in_months
-
+    return [total_experience_in_months, experience_dic]
 
 def get_number_of_months_from_dates(date1, date2):
     '''
@@ -273,36 +298,6 @@ def get_number_of_months_from_dates(date1, date2):
         return 0
     return months_of_experience
 
-
-def extract_entity_sections_professional(text):
-    '''
-    Helper function to extract all the raw text from sections of
-    resume specifically for professionals
-
-    :param text: Raw text of resume
-    :return: dictionary of entities
-    '''
-    text_split = [i.strip() for i in text.split('\n')]
-    entities = {}
-    key = False
-    for phrase in text_split:
-        if len(phrase) == 1:
-            p_key = phrase
-        else:
-            p_key = set(phrase.lower().split()) \
-                    & set(cs.RESUME_SECTIONS_PROFESSIONAL)
-        try:
-            p_key = list(p_key)[0]
-        except IndexError:
-            pass
-        if p_key in cs.RESUME_SECTIONS_PROFESSIONAL:
-            entities[p_key] = []
-            key = p_key
-        elif key and phrase.strip():
-            entities[key].append(phrase)
-    return entities
-
-
 def extract_email(text):
     '''
     Helper function to extract email id from text
@@ -316,8 +311,11 @@ def extract_email(text):
         except IndexError:
             return None
 
+def preprocess(nlp_text, nlp):
+    text = [w.text for w in nlp_text if not w.is_stop and not w.is_punct]
+    return nlp(' '.join(text))
 
-def extract_name(nlp_text, nlp_text_sents, matcher):
+def extract_name(nlp_text, matcher):
     '''
     Helper function to extract name from spacy nlp text
 
@@ -325,15 +323,18 @@ def extract_name(nlp_text, nlp_text_sents, matcher):
     :param matcher: object of `spacy.matcher.Matcher`
     :return: string of full name
     '''
+    # text = [w.text for w in nlp_text if not w.is_stop and w.pos_ != 'PUNCT']
 
-    pattern = [cs.NAME_PATTERN, cs.NAME_PATTERN2]
+    pattern = [cs.NAME_PATTERN]
 
     matcher.add('NAME', None, *pattern)
 
     matches = matcher(nlp_text)
+    # print([(x.orth_, x.pos_,)
+    #    for x in [y for y in nlp_text if not y.is_stop and y.pos_ != 'PUNCT']])
 
-    # print([(x.orth_,x.pos_) for x in [y for y in nlp_text
-    #                                   if not y.is_stop and y.pos_ != 'PUNCT']])
+    first_sent = ''
+
     for _, start, end in matches:
         span = nlp_text[start:end]
         if 'name' not in span.text.lower():
@@ -352,6 +353,23 @@ def extract_name(nlp_text, nlp_text_sents, matcher):
     else:
         fullname.append(first_sent)
     return fullname
+
+def extract_company_name(nlp_text):
+    college_df = pd.read_csv(
+        os.path.join(os.path.dirname(__file__), 'world-universities.csv')
+    )
+    colleges = [college.upper() for college in list(college_df.name)]
+
+    skills_df = pd.read_csv(
+        os.path.join(os.path.dirname(__file__), 'skills.csv')
+    )
+    skills = [skill.upper() for skill in list(skills_df.columns.values)]
+
+    companies = []
+    for ee in nlp_text.ents:
+        if ee.label_ == 'ORG' and str(ee).upper() not in colleges + skills:
+            companies.append(ee)
+    return companies
 
 def extract_mobile_number(text, custom_regex=None):
     '''
@@ -400,7 +418,6 @@ def extract_skills(nlp_text, noun_chunks, skills_file=None):
             skillset.append(token)
     return [i.capitalize() for i in set([i.lower() for i in skillset])]
 
-
 def cleanup(token, lower=True):
     if lower:
         token = token.lower()
@@ -428,7 +445,7 @@ def extract_designation(nlp_text, noun_chunks):
             titleset.append(token)
     return [i.capitalize() for i in set([i.lower() for i in titleset])]
 
-def extract_education(nlp_text_sents):
+def extract_degree(nlp_text_sents):
     '''
     Helper function to extract education from spacy nlp text
 
