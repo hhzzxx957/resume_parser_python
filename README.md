@@ -3,7 +3,7 @@ Extract information from resumes/CVs, including name, college, degree, phone, sk
 
 Support PDF and DOCx files.
 
-Modified from Omkar Pathak's pyresparser, https://github.com/OmkarPathak/pyresparser. Keep updating.
+Modified from [Omkar Pathak's pyresparser](https://github.com/OmkarPathak/pyresparser). Keep updating.
 
 # How to use
 Install dependencies from resparser/requirements.txt
@@ -60,10 +60,12 @@ Here is an example result:
  'total_experience': 14.42}
  ```
 # Try here
-Upload your pdf/docx resume on https://jasonhe.pythonanywhere.com to view the result.
+Upload your pdf/docx resume on [here](https://jasonhe.pythonanywhere.com) to view the result.
 
 # Ranking by education
-User can rank multiple resume by education in resume folder. Using rank_by_edu.py. Rank is based on the ranking of the best universities of the world made by The Times Higher Education for 2020. https://www.timeshighereducation.com/world-university-rankings/2020/world-ranking#!/page/0/length/-1/sort_by/rank/sort_order/asc/cols/scores
+User can rank multiple resume by education in resume folder. Using rank_by_edu.py. 
+
+Rank is based on the ranking of the best universities of the world made by [The Times Higher Education for 2020](https://www.timeshighereducation.com/world-university-rankings/2020/world-ranking#!/page/0/length/-1/sort_by/rank/sort_order/asc/cols/scores).
 
 Here is an example output:
 ```
@@ -93,6 +95,6 @@ You can customize the parser easily by replacing your own skill, majorslist, wor
 You can also train your own spacy model (with your own labeled training data from other sources) by using the custom_train.py in model folder. The trained model can replaced the default model in resparser/model/
 
 # Reference
-Great thanks to Omkar Pathak's pyresparser, https://github.com/OmkarPathak/pyresparser
+Great thanks to [Omkar Pathak's pyresparser](https://github.com/OmkarPathak/pyresparser)
 
-Summaried code concepts from Priya, https://medium.com/@divalicious.priya/information-extraction-from-cv-acec216c3f48.
+Summaried code concepts from Priya, [here](https://medium.com/@divalicious.priya/information-extraction-from-cv-acec216c3f48).
