@@ -70,7 +70,10 @@ class ResumeParser(object):
         [self.__exp_date, self.__exp_dic] = utils.get_total_experience(
             self.__text_experience)
         # print(list(self.__exp_dic.values())[0])
-        self.__nlp_exp_dic = nlp(' '.join(list(self.__exp_dic.values())[0]))
+        try:
+            self.__nlp_exp_dic = nlp(' '.join(list(self.__exp_dic.values())[0]))
+        except:
+            self.__nlp_exp_dic = nlp('')
 
         self.__get_basic_details()
 

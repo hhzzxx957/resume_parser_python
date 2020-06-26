@@ -96,9 +96,9 @@ def get_number_of_pages(file_name):
             # for remote pdf file
             count = 0
             for page in PDFPage.get_pages(
-                        file_name,
-                        caching=True,
-                        check_extractable=True
+                file_name,
+                caching=True,
+                check_extractable=True
             ):
                 count += 1
             return count
@@ -203,6 +203,7 @@ def extract_entity_sections(text_raw):
             sections[key].append(phrase)
     return sections
 
+
 def extract_section_text(section_title, sections):
     '''
     helper function to extract text by from each section
@@ -214,6 +215,7 @@ def extract_section_text(section_title, sections):
         if section_name in sections.keys():
             text_section += sections[section_name]
     return '\n'.join(text_section)
+
 
 def extract_entities_form_model(custom_nlp_text):
     '''
@@ -232,6 +234,7 @@ def extract_entities_form_model(custom_nlp_text):
     for key in entities.keys():
         entities[key] = list(set(entities[key]))
     return entities
+
 
 def get_total_experience(experience_text):
     '''
@@ -257,17 +260,20 @@ def get_total_experience(experience_text):
             if line != date:
                 experience_dic[date].append(line.replace(date, ''))
             try:
-                experience_dic[date].append(experience_phrases[ind-1])
-            except: pass
+                experience_dic[date].append(experience_phrases[ind - 1])
+            except:
+                pass
             try:
-                experience_dic[date].append(experience_phrases[ind+1])
-            except: pass
+                experience_dic[date].append(experience_phrases[ind + 1])
+            except:
+                pass
 
     total_exp = sum(
         [get_number_of_months_from_dates(i[0], i[2]) for i in exp_]
     )
     total_experience_in_months = total_exp
     return [total_experience_in_months, experience_dic]
+
 
 def get_number_of_months_from_dates(date1, date2):
     '''
@@ -298,6 +304,7 @@ def get_number_of_months_from_dates(date1, date2):
         return 0
     return months_of_experience
 
+
 def extract_email(text):
     '''
     Helper function to extract email id from text
@@ -311,9 +318,11 @@ def extract_email(text):
         except IndexError:
             return None
 
+
 def preprocess(nlp_text, nlp):
     text = [w.text for w in nlp_text if not w.is_stop and not w.is_punct]
     return nlp(' '.join(text))
+
 
 def extract_name(nlp_text, matcher):
     '''
@@ -354,6 +363,7 @@ def extract_name(nlp_text, matcher):
         fullname.append(first_sent)
     return fullname
 
+
 def extract_company_name(nlp_text):
     college_df = pd.read_csv(
         os.path.join(os.path.dirname(__file__), 'world-universities.csv')
@@ -370,6 +380,7 @@ def extract_company_name(nlp_text):
         if ee.label_ == 'ORG' and str(ee).upper() not in colleges + skills:
             companies.append(ee)
     return companies
+
 
 def extract_mobile_number(text, custom_regex=None):
     '''
@@ -388,6 +399,7 @@ def extract_mobile_number(text, custom_regex=None):
     if phone:
         number = ''.join(phone[0])
         return number
+
 
 def extract_skills(nlp_text, noun_chunks, skills_file=None):
     '''
@@ -418,10 +430,12 @@ def extract_skills(nlp_text, noun_chunks, skills_file=None):
             skillset.append(token)
     return [i.capitalize() for i in set([i.lower() for i in skillset])]
 
+
 def cleanup(token, lower=True):
     if lower:
         token = token.lower()
     return token.strip()
+
 
 def extract_designation(nlp_text, noun_chunks):
     title_df = pd.read_csv(
@@ -444,6 +458,7 @@ def extract_designation(nlp_text, noun_chunks):
         if token in titles:
             titleset.append(token)
     return [i.capitalize() for i in set([i.lower() for i in titleset])]
+
 
 def extract_degree(nlp_text_sents):
     '''
@@ -470,7 +485,7 @@ def extract_degree(nlp_text_sents):
     )
     majors = list(majors_df.Major)
 
-    education =[]
+    education = []
     for key in edu.keys():
         major = [major for major in majors if major in edu[key].upper()]
         year = re.search(re.compile(cs.YEAR), edu[key])
@@ -483,16 +498,39 @@ def extract_degree(nlp_text_sents):
         education.append(' '.join(edu_info))
     return education
 
-def extract_college_name(nlp_text_sents):
-    data = pd.read_csv(
-            os.path.join(os.path.dirname(__file__), 'world-universities.csv')
-            )
 
-    colleges = list(data.name)
+def extract_college_name(nlp_text_sents):
+    data_ranks = pd.read_csv(
+        os.path.join(os.path.dirname(__file__),
+                     'World_University_Rank_2020.csv')
+    )
+
+    colleges = list(data_ranks.University)  # colleges with rank
+    college_name_rank = {}
     collegeset = []
     for sent in nlp_text_sents:
-        collegeset += [college for college in colleges if college.upper() in sent.upper()]
-    return [i.capitalize() for i in set([i.lower() for i in collegeset])]
+        collegeset += [college for college in colleges if college.upper()
+                       in sent.upper()]
+
+    # [i.capitalize() for i in set([i.lower() for i in collegeset])]
+    for name in collegeset:
+        college_name_rank[name] = int(
+            data_ranks.loc[data_ranks['University'] == name, 'Score_Rank'])
+
+    # find college without rank
+    data = pd.read_csv(
+        os.path.join(os.path.dirname(__file__), 'world-universities.csv')
+    )
+    colleges_full = list(data.name)  # full list of colleges
+    collegeset2 = []
+    for sent in nlp_text_sents:
+        collegeset2 += [college for college in colleges_full if college.upper()
+                        in sent.upper()]
+    for name in collegeset2:
+        if name not in collegeset:
+            college_name_rank[name] = float('NaN')
+    return college_name_rank
+
 
 def extract_experience(resume_text):
     '''
@@ -509,16 +547,16 @@ def extract_experience(resume_text):
 
     # remove stop words and lemmatize
     filtered_sentence = [
-            w for w in word_tokens if w not
-            in stop_words and wordnet_lemmatizer.lemmatize(w)
-            not in stop_words
-        ]
+        w for w in word_tokens if w not
+        in stop_words and wordnet_lemmatizer.lemmatize(w)
+        not in stop_words
+    ]
     sent = nltk.pos_tag(filtered_sentence)
-    print('sent',sent)
+    print('sent', sent)
     # parse regex
     cp = nltk.RegexpParser('P: {<NNP>+}')
     cs = cp.parse(sent)
-    print('cs',cs)
+    print('cs', cs)
     # for i in cs.subtrees(filter=lambda x: x.label() == 'P'):
     #     print(i)
 
@@ -531,7 +569,7 @@ def extract_experience(resume_text):
             i[0] for i in vp.leaves()
             if len(vp.leaves()) >= 2])
         )
-    print('test',test)
+    print('test', test)
     # Search the word 'experience' in the chunk and
     # then print out the text after it
     x = [
