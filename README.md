@@ -5,7 +5,7 @@ Support PDF and DOCx files.
 
 Modified from Omkar Pathak's pyresparser, https://github.com/OmkarPathak/pyresparser. Keep updating.
 
-# How to use?
+# How to use
 Install dependencies from resparser/requirements.txt
 
 Install neccesary spacy model and nltk words
@@ -59,6 +59,9 @@ Here is an example result:
             ],
  'total_experience': 14.42}
  ```
+# Try here
+Upload your pdf/docx resume on https://jasonhe.pythonanywhere.com to view the result.
+
 # Ranking by education
 User can rank multiple resume by education in resume folder. Using rank_by_edu.py. Rank is based on the ranking of the best universities of the world made by The Times Higher Education for 2020. https://www.timeshighereducation.com/world-university-rankings/2020/world-ranking#!/page/0/length/-1/sort_by/rank/sort_order/asc/cols/scores
 
