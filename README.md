@@ -3,16 +3,18 @@ Extract information from resumes/CVs, including name, college, degree, phone, sk
 
 Support PDF and DOCx files.
 
-Modified from [Omkar Pathak's pyresparser](https://github.com/OmkarPathak/pyresparser). Keep updating.
+Keep updating.
 
 # How to use
 Install dependencies from resparser/requirements.txt
 
-Install neccesary spacy model and nltk words
+Install neccesary spacy model.
 ```bash
 # spaCy
 python -m spacy download en_core_web_sm
 ```
+
+Run default driver.py to see example output.
 
 Add your target resume in resume folder and change file address in driver.py. 
 
@@ -60,30 +62,25 @@ Here is an example result:
 Upload your pdf/docx resume on [here](https://jasonhe.pythonanywhere.com) to view the result.
 
 # Ranking by education
-User can rank multiple resume by education in resume folder. Using rank_by_edu.py. 
+User can rank multiple resume by education in resume folder. Multiprocessing is enabled when ranking multiple files.
 
 Rank is based on the ranking of the best universities of the world made by [The Times Higher Education for 2020](https://www.timeshighereducation.com/world-university-rankings/2020/world-ranking#!/page/0/length/-1/sort_by/rank/sort_order/asc/cols/scores).
 
 Here is an example output:
 ```
-file processed: 1/8. --- 2.473083 seconds ---
-file processed: 2/8. --- 3.266035 seconds ---
-file processed: 3/8. --- 2.611703 seconds ---
-file processed: 4/8. --- 6.278437 seconds ---
-file processed: 5/8. --- 4.680710 seconds ---
-file processed: 6/8. --- 4.814509 seconds ---
-file processed: 7/8. --- 2.890788 seconds ---
-file processed: 8/8. --- 3.359627 seconds ---
-                              file name                  highest degree                                    best school   rank
-0          jerome_rufin_resume_04_29_20                         BS 2016             University of California, Berkeley   13.0
-1            Resume_Valentin_Porcellini                          Master                             Cornell University   18.0
-2        Meet Thakkar Software Engineer     Master COMPUTER ENGINEERING    University of North Carolina at Chapel Hill   47.0
-3               Resume_Jason(ZhixingHe)                PhD PHYSICS 2013                                  Virginia Tech  157.0
-4    Alex_Suvorov_-_Full_Stack_Engineer  Bachelor COMPUTER SCIENCE 2015                           University of Warsaw  343.0
-5                     Kormulev_short_CV                             NaN       Bauman Moscow State Technical University  410.0
-6                           OmkarResume         BE COMPUTER ENGINEERING                                            NaN    NaN
-7   RahulPhulsundar_IT Business Analyst                      MS FINANCE                                            NaN    NaN
-8        Taylor_Beeston_-_Web_Developer                             NaN                             Liberty University    NaN
+Start calculating ranks...
+Total time is not accurate for multiprocessing...
+
+file processed: 1/4.             --- 2.965085 seconds ---
+file processed: 2/4.             --- 3.158208 seconds ---
+file processed: 3/4.             --- 3.613191 seconds ---
+file processed: 4/4.             --- 3.967168 seconds ---
+
+                             file name                  highest degree                               best school  rank
+0        jerome_rufin_resume_04_29_20                         BS 2016        University of California, Berkeley    13
+1             Resume_Jason(ZhixingHe)                PhD PHYSICS 2013                             Virginia Tech   157
+2  Alex_Suvorov_-_Full_Stack_Engineer  Bachelor COMPUTER SCIENCE 2015                      University of Warsaw   343
+3                   Kormulev_short_CV                             NaN  Bauman Moscow State Technical University   410
 ```
 
 # Customize
@@ -92,6 +89,6 @@ You can customize the parser easily by replacing your own skill, majorslist, wor
 You can also train your own spacy model (with your own labeled training data from other sources) by using the custom_train.py in model folder. The trained model can replaced the default model in resparser/model/
 
 # Reference
-Great thanks to [Omkar Pathak's pyresparser](https://github.com/OmkarPathak/pyresparser)
+This project is modified and improved from [Omkar Pathak's pyresparser](https://github.com/OmkarPathak/pyresparser).
 
 Summaried code concepts from Priya, [here](https://medium.com/@divalicious.priya/information-extraction-from-cv-acec216c3f48).
