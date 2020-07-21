@@ -1,22 +1,23 @@
-# Origin Author: Omkar Pathak
-# Updated by Jason He
-
+# -*- coding: utf-8 -*-
+'''
+Main program for ResumeParser.
+'''
 import os
 import multiprocessing as mp
 import io
-import spacy
 import pprint
+import spacy
 from spacy.matcher import Matcher
 from . import utils
 
-
 class ResumeParser(object):
+    '''Main class'''
 
     def __init__(
-        self,
-        resume,
-        skills_file=None,
-        custom_regex=None
+            self,
+            resume,
+            skills_file=None,
+            custom_regex=None
     ):
         nlp = spacy.load('en_core_web_sm')
         custom_nlp = spacy.load(os.path.dirname(
@@ -69,22 +70,26 @@ class ResumeParser(object):
         self.__nlp_experience = nlp(self.__text_experience)
         [self.__exp_date, self.__exp_dic] = utils.get_total_experience(
             self.__text_experience)
-        # print(list(self.__exp_dic.values())[0])
         try:
-            self.__nlp_exp_dic = nlp(' '.join(list(self.__exp_dic.values())[0]))
-        except:
+            self.__nlp_exp_dic = nlp(
+                ' '.join(list(self.__exp_dic.values())[0]))
+        except IndexError:
             self.__nlp_exp_dic = nlp('')
 
         self.__get_basic_details()
 
-        # print(self.__text_cleaned, '\n')
-        # print(self.__sections)
 
     def get_extracted_data(self):
+        '''
+        Output extraction.
+        '''
         return self.__details
 
+    # @utils.timer
     def __get_basic_details(self):
-        # get profile info
+        '''
+        Get profile info.
+        '''
         name = utils.extract_name(self.__nlp_profile, matcher=self.__matcher)
         if not name:
             name = utils.extract_name(self.__nlp, matcher=self.__matcher)
@@ -162,6 +167,9 @@ class ResumeParser(object):
 
 
 def resume_result_wrapper(resume):
+    '''
+    Wrapper for multiprocessing
+    '''
     parser = ResumeParser(resume)
     return parser.get_extracted_data()
 

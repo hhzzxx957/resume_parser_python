@@ -1,22 +1,39 @@
-# Author: Omkar Pathak
-
+'''
+utilities for extracting all types of resume information
+'''
 import io
 import os
 import re
-import nltk
+from time import time
+from datetime import datetime
+from functools import wraps
 import pandas as pd
 import docx2txt
-from datetime import datetime
 from dateutil import relativedelta
-from . import constants as cs
 from pdfminer.converter import TextConverter
 from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.pdfinterp import PDFResourceManager
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFSyntaxError
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
+import textract
+
+from . import constants as cs
+
+
+def timer(func):
+    '''
+    Helper function of getting time. Decorator.
+    '''
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time()
+        value = func(*args, **kwargs)
+        end_time = time()
+        run_time = end_time - start_time
+        print(f"-- {func.__name__!r} finished in {run_time:.3f} secs.--")
+        return value
+    return wrapper
 
 
 def extract_text_from_pdf(pdf_path):
@@ -29,10 +46,10 @@ def extract_text_from_pdf(pdf_path):
     # https://www.blog.pythonlibrary.org/2018/05/03/exporting-data-from-pdfs-with-python/
     if not isinstance(pdf_path, io.BytesIO):
         # extract text from local pdf file
-        with open(pdf_path, 'rb') as fh:
+        with open(pdf_path, 'rb') as pdffile:
             try:
                 for page in PDFPage.get_pages(
-                        fh,
+                        pdffile,
                         caching=True,
                         check_extractable=True
                 ):
@@ -91,14 +108,20 @@ def extract_text_from_pdf(pdf_path):
 
 
 def get_number_of_pages(file_name):
+    '''
+    Helper function to get page number.
+
+    @param file_name: string
+    @return int
+    '''
     try:
         if isinstance(file_name, io.BytesIO):
             # for remote pdf file
             count = 0
-            for page in PDFPage.get_pages(
-                file_name,
-                caching=True,
-                check_extractable=True
+            for _ in PDFPage.get_pages(
+                    file_name,
+                    caching=True,
+                    check_extractable=True
             ):
                 count += 1
             return count
@@ -106,9 +129,9 @@ def get_number_of_pages(file_name):
             # for local pdf file
             if file_name.endswith('.pdf'):
                 count = 0
-                with open(file_name, 'rb') as fh:
-                    for page in PDFPage.get_pages(
-                            fh,
+                with open(file_name, 'rb') as pdffile:
+                    for _ in PDFPage.get_pages(
+                            pdffile,
                             caching=True,
                             check_extractable=True
                     ):
@@ -143,10 +166,6 @@ def extract_text_from_doc(doc_path):
     :return: string of extracted text
     '''
     try:
-        try:
-            import textract
-        except ImportError:
-            return ' '
         text = textract.process(doc_path).decode('utf-8')
         return text
     except KeyError:
@@ -206,8 +225,13 @@ def extract_entity_sections(text_raw):
 
 def extract_section_text(section_title, sections):
     '''
-    helper function to extract text by from each section
+    Helper function to extract text by from each section
     including profile, experience, skills, education
+
+    :param section_title: string of the section title
+    :param sections: dictionary of section text
+
+    return text of the section
     '''
     section_list = cs.SECTION_NAMELIST[section_title]
     text_section = []
@@ -231,7 +255,7 @@ def extract_entities_form_model(custom_nlp_text):
             entities[ent.label_] = [ent.text]
         else:
             entities[ent.label_].append(ent.text)
-    for key in entities.keys():
+    for key in entities:
         entities[key] = list(set(entities[key]))
     return entities
 
@@ -261,11 +285,11 @@ def get_total_experience(experience_text):
                 experience_dic[date].append(line.replace(date, ''))
             try:
                 experience_dic[date].append(experience_phrases[ind - 1])
-            except:
+            except IndexError:
                 pass
             try:
                 experience_dic[date].append(experience_phrases[ind + 1])
-            except:
+            except IndexError:
                 pass
 
     total_exp = sum(
@@ -320,6 +344,14 @@ def extract_email(text):
 
 
 def preprocess(nlp_text, nlp):
+    '''
+    Preprocess nlp text
+
+    :param nlp_text: object of `spacy.tokens.doc.Doc`
+    :param nlp: spacy model
+
+    return `spacy.tokens.doc.Doc`
+    '''
     text = [w.text for w in nlp_text if not w.is_stop and not w.is_punct]
     return nlp(' '.join(text))
 
@@ -365,6 +397,13 @@ def extract_name(nlp_text, matcher):
 
 
 def extract_company_name(nlp_text):
+    '''
+    Helper function to extract company name.
+
+    :param nlp_text: 'spacy.tokens.doc.Doc'
+    :return list of company names
+    '''
+
     college_df = pd.read_csv(
         os.path.join(os.path.dirname(__file__), 'world-universities.csv')
     )
@@ -376,9 +415,9 @@ def extract_company_name(nlp_text):
     skills = [skill.upper() for skill in list(skills_df.columns.values)]
 
     companies = []
-    for ee in nlp_text.ents:
-        if ee.label_ == 'ORG' and str(ee).upper() not in colleges + skills:
-            companies.append(ee)
+    for ent in nlp_text.ents:
+        if ent.label_ == 'ORG' and str(ent).upper() not in colleges + skills:
+            companies.append(ent)
     return companies
 
 
@@ -390,7 +429,7 @@ def extract_mobile_number(text, custom_regex=None):
     :return: string of extracted mobile numbers
     '''
     if not custom_regex:
-        mob_num_regex = ".*?(\(?\d{3}\D{0,3}\d{3}\D{0,3}\d{4}).*?"
+        mob_num_regex = r".*?(\(?\d{3}\D{0,3}\d{3}\D{0,3}\d{4}).*?"
 #         mob_num_regex = r'''(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)
 #                         [-\.\s]*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})'''
         phone = re.findall(re.compile(mob_num_regex), text)
@@ -432,12 +471,23 @@ def extract_skills(nlp_text, noun_chunks, skills_file=None):
 
 
 def cleanup(token, lower=True):
+    '''
+    Helper function for clean up text.
+    '''
     if lower:
         token = token.lower()
     return token.strip()
 
 
 def extract_designation(nlp_text, noun_chunks):
+    '''
+    Helper function to extract designation.
+
+    :param nlp_text: 'spacy.tokens.doc.Doc'
+    :param noun_chunks
+    :return list of desinations
+    '''
+
     title_df = pd.read_csv(
         os.path.join(os.path.dirname(__file__), 'jobtitles.csv')
     )
@@ -464,7 +514,7 @@ def extract_degree(nlp_text_sents):
     '''
     Helper function to extract education from spacy nlp text
 
-    :param nlp_text: object of `spacy.tokens.doc.Doc`
+    :param nlp_text_sents: object of `spacy.tokens.doc.Doc`
     :return: tuple of education degree and year if year if found
              else only returns education degree
     '''
@@ -486,7 +536,7 @@ def extract_degree(nlp_text_sents):
     majors = list(majors_df.Major)
 
     education = []
-    for key in edu.keys():
+    for key in edu:
         major = [major for major in majors if major in edu[key].upper()]
         year = re.search(re.compile(cs.YEAR), edu[key])
 
@@ -500,6 +550,13 @@ def extract_degree(nlp_text_sents):
 
 
 def extract_college_name(nlp_text_sents):
+    '''
+    Helper function to extract college names
+
+    :param nlp_text_sents: 'spacy.tokens.doc.Doc' for one section text
+    :return dictionary of college ranks
+    '''
+
     data_ranks = pd.read_csv(
         os.path.join(os.path.dirname(__file__),
                      'World_University_Rank_2020.csv')
@@ -530,51 +587,3 @@ def extract_college_name(nlp_text_sents):
         if name not in collegeset:
             college_name_rank[name] = float('NaN')
     return college_name_rank
-
-
-def extract_experience(resume_text):
-    '''
-    Helper function to extract experience from resume text
-
-    :param resume_text: Plain resume text
-    :return: list of experience
-    '''
-    wordnet_lemmatizer = WordNetLemmatizer()
-    stop_words = set(stopwords.words('english'))
-
-    # word tokenization
-    word_tokens = nltk.word_tokenize(resume_text)
-
-    # remove stop words and lemmatize
-    filtered_sentence = [
-        w for w in word_tokens if w not
-        in stop_words and wordnet_lemmatizer.lemmatize(w)
-        not in stop_words
-    ]
-    sent = nltk.pos_tag(filtered_sentence)
-    print('sent', sent)
-    # parse regex
-    cp = nltk.RegexpParser('P: {<NNP>+}')
-    cs = cp.parse(sent)
-    print('cs', cs)
-    # for i in cs.subtrees(filter=lambda x: x.label() == 'P'):
-    #     print(i)
-
-    test = []
-
-    for vp in list(
-        cs.subtrees(filter=lambda x: x.label() == 'P')
-    ):
-        test.append(" ".join([
-            i[0] for i in vp.leaves()
-            if len(vp.leaves()) >= 2])
-        )
-    print('test', test)
-    # Search the word 'experience' in the chunk and
-    # then print out the text after it
-    x = [
-        x[x.lower().index('experience') + 10:]
-        for i, x in enumerate(test)
-        if x and 'experience' in x.lower()
-    ]
-    return x

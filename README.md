@@ -12,9 +12,6 @@ Install neccesary spacy model and nltk words
 ```bash
 # spaCy
 python -m spacy download en_core_web_sm
-
-# nltk
-python -m nltk.downloader words
 ```
 
 Add your target resume in resume folder and change file address in driver.py. 
