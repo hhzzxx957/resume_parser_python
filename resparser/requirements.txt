@@ -36,7 +36,7 @@ textract==1.6.3
 thinc==7.4.0
 tqdm==4.48.0
 tzlocal==1.5.1
-urllib3==1.25.9
+urllib3==1.26.5
 wasabi==0.7.1
 xlrd==1.2.0
 XlsxWriter==1.2.9
