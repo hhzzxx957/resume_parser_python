@@ -11,7 +11,7 @@ en-core-web-sm==2.2.5
 extract-msg==0.23.1
 idna==2.10
 IMAPClient==2.1.0
-lxml==4.5.2
+lxml==4.6.5
 murmurhash==1.0.2
 numpy==1.19.0
 olefile==0.46
