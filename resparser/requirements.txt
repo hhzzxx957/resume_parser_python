@@ -13,7 +13,7 @@ idna==2.10
 IMAPClient==2.1.0
 lxml==4.5.2
 murmurhash==1.0.2
-numpy==1.19.0
+numpy==1.22.0
 olefile==0.46
 pandas==1.0.5
 pdfminer==20191125
